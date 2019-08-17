@@ -32,7 +32,14 @@
                             <outlet property="delegate" destination="UAa-SA-muU" id="lN6-8R-1ah"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Pocket List" id="SFd-ED-K5V"/>
+                    <navigationItem key="navigationItem" title="Pocket List" id="SFd-ED-K5V">
+                        <barButtonItem key="rightBarButtonItem" systemItem="add" id="ren-CQ-4yq">
+                            <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <connections>
+                                <action selector="addButtonTapped:" destination="UAa-SA-muU" id="a2u-2C-2CE"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Hgk-nA-yAU" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
