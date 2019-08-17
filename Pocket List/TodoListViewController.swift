@@ -11,11 +11,18 @@ import UIKit
 class TodoListViewController: UITableViewController {
     
     var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+    
+    let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
+            itemArray = items
+        }
     }
+    
+    
     
     // MARK - Tableview Datasource Methods
     
@@ -34,6 +41,8 @@ class TodoListViewController: UITableViewController {
         return cell
     }
     
+    
+    
     // MARK - TableView Delegate Methods
     // prints row when user selects a cell
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -47,10 +56,9 @@ class TodoListViewController: UITableViewController {
             tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
         }
         
-        
-//        tableView.deselectRow(at: indexPath, animated: true)
-        
     }
+    
+    
     
     // MARK - Add New Items
     @IBAction func addButtonTapped(_ sender: Any) {
@@ -67,6 +75,8 @@ class TodoListViewController: UITableViewController {
                 return
             }
             self.itemArray.append(text)
+            // save user data into key TodoListArray in users plist file. 
+            self.defaults.set(self.itemArray, forKey: "TodoListArray")
             self.tableView.reloadData()
         }
         
