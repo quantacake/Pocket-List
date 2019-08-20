@@ -8,14 +8,16 @@
 
 import Foundation
 
-class Item {
+// make item type able to encode itself into plist or json, etc.
+// all properties must have standard data types if using Encodable
+// can replace Encodeable, Decodable with Codable
+class Item: Codable {
     
     var title: String? = ""
     var done: Bool = false
     
     public init() {
-//        self.title = title
-//        self.done = done
+
     }
     
     
