@@ -7,37 +7,36 @@
 //
 
 import UIKit
+import CoreData
 
 
 class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
     
+    // is nil until set in CategoryViewController
+    var selectedCategory : Category? {
+        // triggers as soon as selectedCategory contains a value (not nil)
+        didSet {
+            loadItems()
+        }
+    }
+    
     // file path to documents folder
     // .first grabs first item
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist") // creates new custom plist
+
+
+    // how to tap into persistent container in the DataModel file in DataModel directory
+    // UIApplication.shared corresponds to the live application object
+    // delegate of the app object. and downcast to AppDelegate object
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
 //    let defaults = UserDefaults.standard
     // custom user defaults
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        print(dataFilePath)
-        
-//        let newItem = Item()
-//        newItem.title = "item 1"
-//        itemArray.append(newItem)
-//
-//        let newItem2 = Item()
-//        newItem2.title = "item 2"
-//        itemArray.append(newItem2)
-//
-//        let newItem3 = Item()
-//        newItem3.title = "item 3"
-//        itemArray.append(newItem3)
 
-        loadItems()
     }
     
     
@@ -67,8 +66,16 @@ class TodoListViewController: UITableViewController {
     // MARK - TableView Delegate Methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
+        // stage items to be deleted. before being removed from itemArray
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
+//        saveItems() // commit the items to database
+        
         // add or remove checkmark accessory to cell when on tap
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+        
+        // this can be used to update an attribute/property, crUd
+//        itemArray[indexPath.row].setValue("Completed", forKey: "title")
         
         saveItems()
         
@@ -88,10 +95,11 @@ class TodoListViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             // what will happen once the user clicks the add item button on the UIAlert
-            
-            let newItem = Item()
+
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
-            
+            newItem.done = false
+            newItem.parentCategory = self.selectedCategory
             self.itemArray.append(newItem)
             
             self.saveItems()
@@ -113,41 +121,84 @@ class TodoListViewController: UITableViewController {
     
     
     // MARK - Model Manupulation Methods
-    
+    // commit context to permanent storage inside persistent container
+    // must use try context.save()
     func saveItems() {
         
         // uses custom objects
-        let encoder = PropertyListEncoder()
         
         do {
-            // encode data
-            let data = try encoder.encode(itemArray)
-            // write data to data file path
-            try data.write(to: dataFilePath!)
+            try context.save()
         } catch {
-            print("Error encoding item array, \(error)")
+            print("Error saving context \(error)")
         }
         
     }
     
-    
-    func loadItems() {
+    // Item.fetchRequest() in permeter is the default value
+    // use 'with' for external permeter and 'request' for internal use
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), and predicate: NSPredicate? = nil) {
+
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
         
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            
-            // decode items
-            let decoder = PropertyListDecoder()
-            do {
-                itemArray = try decoder.decode([Item].self, from: data)
-            } catch {
-                print("Error decoding item array, \(error)")
-            }
-            
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        } else {
+            request.predicate = categoryPredicate
         }
+        
+//        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, predicate])
+//
+//        request.predicate = compoundPredicate
+        // fetch resutls in the form of Item. datatype of output is Item
+//        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        
+        do {
+            itemArray = try context.fetch(request)
+        } catch {
+            print("\nError fetching dat from context \(error)")
+        }
+        
+        tableView.reloadData()
     }
-    
     
 
 
 }
 
+
+// MARK: - Search bar methods
+
+extension TodoListViewController: UISearchBarDelegate {
+
+    // query database
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        // Query objects. add query to request
+        // NSPredicate decides how data should be filtered.
+        let predicate  = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        loadItems(with: request, and: predicate)
+        
+    }
+
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder() // remove keyboard
+            }
+            
+            
+            
+            
+        }
+    }
+    
+}
