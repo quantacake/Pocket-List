@@ -7,5 +7,8 @@ target 'Pocket List' do
   # Pods for Pocket List
 
 pod 'RealmSwift'
+pod 'SwipeCellKit'
+pod 'ChameleonFramework/Swift', :git => 'https://github.com/ViccAlexander/Chameleon.git'
+
 
 end
