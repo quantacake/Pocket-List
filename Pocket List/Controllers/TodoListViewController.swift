@@ -8,6 +8,7 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
 
 class TodoListViewController: SwipeTableViewController {
@@ -15,20 +16,71 @@ class TodoListViewController: SwipeTableViewController {
     var todoItems: Results<Item>?
     let realm = try! Realm()
     
+    @IBOutlet weak var searchBar: UISearchBar!
     
     // is nil until set in CategoryViewController
     var selectedCategory : Category? {
         // triggers as soon as selectedCategory contains a value (not nil)
         didSet {
             loadItems()
+            
+            tableView.separatorStyle = .none
         }
     }
 
+    
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
     }
     
+    // after viewDidLoad runs, viewWillAppear will run next.
+    // this protects from potential nil values in viewDidLoad since some processes
+    // haven't ran yet and may contain nil values
+    override func viewWillAppear(_ animated: Bool) {
+        
+        
+        // set title if have selected category
+        title = selectedCategory?.name
+        
+        // dynamically change navigation bar color
+        guard let colorHex = selectedCategory?.cellColor else {  fatalError() }// if color is not nil
+        
+        updateNavBar(withHexCode: colorHex)
+        
+    
+    }
+    
+
+    override func viewWillDisappear(_ animated: Bool) {
+        
+        updateNavBar(withHexCode: "1D9BF6")
+        
+    }
+    
+    // MARK: - Nav Bar Setup Methods
+    
+    func updateNavBar(withHexCode colorHexCode: String) {
+        
+        // nav controller is still nil on viewDidLoad
+        // if nav controller does not yet exist, return error.
+        guard let navBar = navigationController?.navigationBar else { fatalError("Navigation controller does not exist.")}
+        
+        guard let navBarColor = UIColor(hexString: colorHexCode) else { fatalError() }
+        
+        navBar.barTintColor = navBarColor
+        
+        // change buttons to contrast color of nav bar
+        navBar.tintColor = ContrastColorOf(navBarColor, returnFlat: true)
+        
+        searchBar.barTintColor = navBarColor
+        
+        // change color of title
+        navBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : ContrastColorOf(navBarColor, returnFlat: true)]
+        
+        
+    }
     
     
     // MARK - Tableview Datasource Methods
@@ -45,7 +97,23 @@ class TodoListViewController: SwipeTableViewController {
         if let item = todoItems?[indexPath.row] {
             // fill the new resuable cell with title, accessory type etc.
             cell.textLabel?.text = item.title
+            
+            // dynamically change cell and text color
+            // if UIColor is not nil?,then try to darken it.
+            if let color = UIColor(hexString: selectedCategory!.cellColor)?.darken(byPercentage:
+                CGFloat(indexPath.row) / CGFloat(todoItems!.count)) {
+                cell.backgroundColor = color
+                // determines whether while or black text is the optimal choice
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+            }
+            
+            
+//            print("Version 1: \(CGFloat(indexPath.row / todoItems!.count))")
+//            print("Version 2: \(CGFloat(indexPath.row) / CGFloat(todoItems!.count))")
+//
+//            cell.backgroundColor =
             cell.accessoryType = item.done ? .checkmark : .none
+            
         } else {
             // if numberOfRowsInSection = nil, add "No Items Added" into the 1 cell
             cell.textLabel?.text = "No Items Added"
